@@ -1,11 +1,17 @@
+import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import AutoImport from "unplugin-auto-import/vite";
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@/": `${resolve(__dirname, "src")}/`,
+    },
+  },
   plugins: [
     AutoImport({
-      dts: "types/auto-import.d.ts",
+      dts: resolve(__dirname, "types/auto-import.d.ts"),
       defaultExportByFilename: true,
-      dirs: ["src/utils"],
+      dirs: [resolve(__dirname, "src/utils")],
     }),
   ],
 });

@@ -5,6 +5,7 @@
 export {}
 declare global {
   const THREE: typeof import('../src/utils/index')['THREE']
+  const gui: typeof import('../src/utils/index')['gui']
   const initial: typeof import('../src/utils/index')['initial']
   const run: typeof import('../src/utils/index')['run']
   const use: typeof import('../src/utils/index')['use']
