@@ -4,9 +4,11 @@
 // import { mixer } from "@/models/mixer";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { Mesh, MeshLambertMaterial, PlaneGeometry } from "three";
+import { Clock, Mesh, MeshLambertMaterial, PlaneGeometry } from "three";
 import { scene } from "../scene";
 import { mixer } from "../mixer";
+import { camera } from "../camera";
+import { controls } from "../orbit-controls";
 import women from "./能文能武.glb?url";
 
 // use(async () => {
@@ -36,7 +38,7 @@ import women from "./能文能武.glb?url";
 const keys = new Set();
 
 window.addEventListener("keydown", ev => {
-	console.log(ev);
+	// console.log(ev);
 	keys.add(ev.key.toLocaleLowerCase());
 });
 window.addEventListener("keyup", ev => {
@@ -56,108 +58,55 @@ loader.load(women, gltf => {
 	console.log(walk);
 	walk.tracks = walk.tracks.filter(item => !item.name.endsWith("position"));
 	const walkAction = mixer.clipAction(walk);
-	// const backAction = mixer.clipAction(walk);
-	// backAction.timeScale = -1;
-	const walkRight = gltf.animations.find(item => item.name == "walk-right");
-	walkRight.tracks = walkRight.tracks.filter(
-		item => !item.name.endsWith("position")
-	);
-	const rightAction = mixer.clipAction(walkRight);
-	// const leftAction = mixer.clipAction(walkRight);
-	// leftAction.timeScale = -1;
-	rightAction.play();
 	walkAction.play();
-
-	// walkAction.timeScale = -1;
-	// backAction.play();
-	// leftAction.play();
-
-	rightAction.weight = 0;
-	walkAction.weight = 0;
-	// leftAction.weight = 0;
-	// backAction.weight = 0;
 
 	gltf.scene.traverse(item => {
 		if (item.isMesh) item.castShadow = true;
 	});
+	const clock = new Clock();
 
+	controls.target = gltf.scene.position;
+	let pos = { x: 0, y: 0, z: 0 };
 	useAnimation(() => {
-		// walkAction.play();
+		const delta = clock.getDelta();
+		// console.log(delta);
+		pos.x = gltf.scene.position.x;
+		pos.y = gltf.scene.position.y;
+		pos.z = gltf.scene.position.z;
 		if (keys.has("w")) {
-			walkAction.weight += 0.1;
-			walkAction.timeScale += 0.1;
+			walkAction.paused = false;
+			gltf.scene.translateZ(delta * 2);
+			// camera.translateZ(delta * 2);
 		}
-		else {
-			walkAction.weight -= 0.1;
-			walkAction.timeScale -= 0.1;
-		}
+		else { walkAction.paused = true; }
 
-		if (keys.has("s")) {
-			walkAction.weight -= 0.1;
-			walkAction.timeScale -= 0.1;
-		}
-		else {
-			walkAction.weight += 0.1;
-			walkAction.timeScale += 0.1;
-		}
+		// gltf.scene.rotation.y = camera.rotation.y + camera.rotation.z;
+		// gltf.scene.rotation.x = camera.rotation.x;
+		if (keys.has("a"))
+			gltf.scene.rotateY(Math.PI * delta);
 
-		if (walkAction.weight > 1) walkAction.weight = 1;
-		if (walkAction.weight < 0) walkAction.weight = 0;
+		if (keys.has("d"))
+			gltf.scene.rotateY(Math.PI * -delta);
 
-		if (walkAction.timeScale > 1) walkAction.timeScale = 1;
-		if (walkAction.timeScale < -1) walkAction.timeScale = -1;
+		// if (walkAction.paused) {
+		camera.lookAt(gltf.scene.position);
+		// }
+		// else {
+		// 	gltf.scene.translateZ(delta * 2);
+		// }
+		camera.position.x += gltf.scene.position.x - pos.x;
+		camera.position.y += gltf.scene.position.y - pos.y;
+		camera.position.z += gltf.scene.position.z - pos.z;
 
-		if (keys.has("a")) rightAction.weight += 0.1;
-		else rightAction.weight -= 0.1;
+		// console.log(gltf.scene.position.x - pos.x);
+		//
+		// controls.target = gltf.scene.position;
+		// camera.rotateOnAxis(gltf.scene.position, 0);
 
-		if (rightAction.weight > 1) rightAction.weight = 1;
-		if (rightAction.weight < 0) rightAction.weight = 0;
+		const isBack = Math.abs(camera.rotation.x) < (Math.PI / 2);
 
-		// if (keys.has("d"))
-		// 	leftAction.weight += 0.1;
+		gltf.scene.rotation.y = isBack ? -camera.rotation.y + Math.PI : -camera.rotation.y;
 
-		// else
-		// 	leftAction.weight -= 0.1;
-
-		// if (leftAction.weight > 1) leftAction.weight = 1;
-		// if (leftAction.weight < 0) leftAction.weight = 0;
-
-		// if (keys.has("s"))
-		// 	backAction.weight += 0.1;
-
-		// else
-		// 	backAction.weight -= 0.1;
-
-		// if (backAction.weight > 1) backAction.weight = 1;
-		// if (backAction.weight < 0) backAction.weight = 0;
+		console.log(isBack);
 	});
-
-	// const skeketonHelper = new SkeletonHelper(gltf.scene);
-	// scene.add(skeketonHelper);
 });
-
-// const boxGeometry = new BoxGeometry(50, 50, 50);
-
-// const target1 = new BoxGeometry(50, 200, 50).attributes.position;
-// const target2 = new BoxGeometry(10, 50, 10).attributes.position;
-
-// boxGeometry.morphAttributes.position = [target1, target2];
-
-// const mesh = new Mesh(boxGeometry, new MeshLambertMaterial());
-// mesh.name = "Box";
-// scene.add(mesh);
-
-// // mesh.morphTargetInfluences[0] = 0.0;
-// // mesh.morphTargetInfluences[0] = 1.0;
-// // mesh.morphTargetInfluences[0] = 0.5;
-
-// console.log(mesh.morphTargetInfluences, target1);
-
-// const KF1 = new KeyframeTrack("Box.morphTargetInfluences[0]", [0, 5], [0, 1]);
-// const KF2 = new KeyframeTrack("Box.morphTargetInfluences[1]", [5, 10], [0, 1]);
-
-// const clip = new AnimationClip("t", 10, [KF1, KF2]);
-
-// const clipAction = mixer.clipAction(clip);
-
-// clipAction.play();
