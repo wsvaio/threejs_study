@@ -1,7 +1,7 @@
-import { Clock } from "three";
+import { update } from "@tweenjs/tween.js";
 import { scene } from "./models/scene";
 import { camera } from "./models/camera";
-import { composer, css2DRenderer, css3DRenderer, renderer } from "./models/renderer";
+import { clock, composer, css2DRenderer, css3DRenderer, renderer } from "./models/renderer";
 import { mixer } from "./models/mixer";
 
 import.meta.glob("./models/**/index.ts", { eager: true });
@@ -35,8 +35,8 @@ css3DRenderer.domElement.style.cssText = `
 	overflow: hidden;
 `;
 
-const clock = new Clock();
 useAnimation(() => {
+	update();
 	composer.render();
 	css2DRenderer.render(scene, camera);
 	css3DRenderer.render(scene, camera);

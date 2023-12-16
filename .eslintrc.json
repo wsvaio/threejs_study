@@ -1,3 +1,6 @@
 {
-  "extends": ["@wsvaio"]
+  "extends": ["@wsvaio"],
+  "rules": {
+    "no-mixed-spaces-and-tabs": "off"
+  }
 }

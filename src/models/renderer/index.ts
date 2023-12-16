@@ -1,4 +1,4 @@
-import { WebGLRenderer } from "three";
+import { Clock, WebGLRenderer } from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
@@ -21,3 +21,5 @@ composer.addPass(renderPass);
 export const css2DRenderer = new CSS2DRenderer();
 
 export const css3DRenderer = new CSS3DRenderer();
+
+export const clock = new Clock();

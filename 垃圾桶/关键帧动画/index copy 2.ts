@@ -9,7 +9,7 @@ import { scene } from "../scene";
 import { mixer } from "../mixer";
 import { camera } from "../camera";
 import { controls } from "../orbit-controls";
-import women from "./能文能武.glb?url";
+import women from "./无标题.glb?url";
 
 // use(async () => {
 // const mesh = new Mesh(
@@ -82,11 +82,11 @@ loader.load(women, gltf => {
 
 		// gltf.scene.rotation.y = camera.rotation.y + camera.rotation.z;
 		// gltf.scene.rotation.x = camera.rotation.x;
-		if (keys.has("a"))
-			gltf.scene.rotateY(Math.PI * delta);
+		// if (keys.has("a"))
+		// 	gltf.scene.rotateY(Math.PI * delta);
 
-		if (keys.has("d"))
-			gltf.scene.rotateY(Math.PI * -delta);
+		// if (keys.has("d"))
+		// 	gltf.scene.rotateY(Math.PI * -delta);
 
 		// if (walkAction.paused) {
 		camera.lookAt(gltf.scene.position);
@@ -103,10 +103,33 @@ loader.load(women, gltf => {
 		// controls.target = gltf.scene.position;
 		// camera.rotateOnAxis(gltf.scene.position, 0);
 
-		const isBack = Math.abs(camera.rotation.x) < (Math.PI / 2);
+		// const isBack = Math.abs(camera.rotation.x) < (Math.PI / 2);
 
-		gltf.scene.rotation.y = isBack ? -camera.rotation.y + Math.PI : -camera.rotation.y;
+		// gltf.scene.rotation.y = isBack ? -camera.rotation.y + Math.PI : -camera.rotation.y;
 
-		console.log(isBack);
+		console.log(
+			camera.position.x - gltf.scene.position.x,
+			camera.position.z - gltf.scene.position.z,
+		);
+
+		// gltf.scene.rotation.y = Math.PI / 4;
+
+		// console.log(isBack);
+		const 对边 = camera.position.x - gltf.scene.position.x;
+		const 邻边 = camera.position.z - gltf.scene.position.z;
+
+		console.log({
+			对边, 邻边
+		});
+
+		console.log(Math.atan(对边 / 邻边));
+
+		if (邻边 > 0)
+			gltf.scene.rotation.y = Math.PI + Math.atan(对边 / 邻边);
+
+		else
+			gltf.scene.rotation.y = Math.atan(对边 / 邻边);
+
+		console.log(gltf.scene.rotation.y);
 	});
 });
