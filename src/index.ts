@@ -3,6 +3,7 @@ import { scene } from "./models/scene";
 import { camera } from "./models/camera";
 import { clock, composer, css2DRenderer, css3DRenderer, renderer } from "./models/renderer";
 import { mixer } from "./models/mixer";
+import { world } from "./models/cannon";
 
 import.meta.glob("./models/**/index.ts", { eager: true });
 
@@ -37,6 +38,7 @@ css3DRenderer.domElement.style.cssText = `
 
 useAnimation(() => {
 	update();
+	world.fixedStep();
 	composer.render();
 	css2DRenderer.render(scene, camera);
 	css3DRenderer.render(scene, camera);
