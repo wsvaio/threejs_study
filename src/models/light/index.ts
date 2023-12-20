@@ -1,4 +1,4 @@
-import { AmbientLight, DirectionalLight, DirectionalLightHelper } from "three";
+import { AmbientLight, DirectionalLight } from "three";
 import { scene } from "../scene";
 import { gui } from "@/models/gui";
 
@@ -11,13 +11,14 @@ scene.add(ambientLight);
 directionalLight.position.set(-100, 100, -100);
 scene.add(directionalLight);
 
-scene.add(new DirectionalLightHelper(directionalLight));
+// scene.add(new DirectionalLightHelper(directionalLight));
 directionalLight.castShadow = true;
 directionalLight.shadow.camera.left = -100;
 directionalLight.shadow.camera.right = 100;
 directionalLight.shadow.camera.top = -100;
 directionalLight.shadow.camera.bottom = 100;
 directionalLight.shadow.mapSize.set(4096, 4096);
+directionalLight.shadow.bias = -0.0003;
 const ambientLightFolder = gui.addFolder("环境光");
 ambientLightFolder.add(ambientLight, "intensity", 0, 10).name("环境光强度");
 ambientLightFolder

@@ -1,249 +1,138 @@
-import {
-	DoubleSide,
-	Mesh,
-	MeshPhongMaterial,
-	PlaneGeometry,
-	SphereGeometry,
-	TextureLoader,
-	Vector3,
-} from "three";
-import {
-	Body,
-	ContactMaterial,
-	Material,
-	Plane,
-	Sphere,
-	Vec3,
-} from "cannon-es";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { BackSide, BoxGeometry, Mesh, MeshBasicMaterial, MeshLambertMaterial, PlaneGeometry, Raycaster, TextureLoader, Vector2, Vector3 } from "three";
+
+import { Tween } from "@tweenjs/tween.js";
 import { scene } from "../scene";
-import { world } from "../cannon";
+import { gui } from "../gui";
 import { camera } from "../camera";
-import { controls } from "../orbit-controls";
-import img from "./2312.png";
+import { renderer } from "../renderer";
+import RoadUrl from "./马路.glb?url";
+import CarUrl from "./car.glb?url";
 
-const texture = await new TextureLoader().loadAsync(img);
-const concreteMaterial = new Material("concrete");
-const plasticMaterial = new Material("plastic");
+import skyUrl2 from "./sky/negx.jpg";
+import skyUrl4 from "./sky/negy.jpg";
+import skyUrl6 from "./sky/negz.jpg";
+import skyUrl1 from "./sky/posx.jpg";
+import skyUrl3 from "./sky/posy.jpg";
+import skyUrl5 from "./sky/posz.jpg";
 
-const concretePlastic = new ContactMaterial(concreteMaterial, plasticMaterial, {
-	friction: 0.1,
-	restitution: 0.7,
+const textureLoader = new TextureLoader();
+const materialArray = [] as any[];
+for (const item of [skyUrl1, skyUrl2, skyUrl3, skyUrl4, skyUrl5, skyUrl6]) {
+	materialArray.push(new MeshBasicMaterial({
+		map: await textureLoader.loadAsync(item),
+		side: BackSide
+	}));
+}
+
+const skyBox = new Mesh(new BoxGeometry(5000, 5000, 5000), materialArray);
+
+scene.add(skyBox);
+
+const loader = new GLTFLoader();
+
+const Road = await loader.loadAsync(RoadUrl);
+
+Road.scene.traverse(obj => {
+	if ((obj as any)?.isMesh) {
+		obj.castShadow = true;
+		obj.receiveShadow = true;
+		// (obj as Mesh).material.shadowSide = BackSide;
+	}
 });
+scene.add(Road.scene);
 
-world.addContactMaterial(concretePlastic);
+const rayMeshs = [] as any[];
+for (let i = 1; i < 4; i++) {
+	const parkSpace = await createParkSpace(new Vector3(2.5 * (i - 2), 0.1, 5.5));
+	gui
+		.add({ charge: false }, "charge", [false, true])
+		.name(`充电${i}`)
+		.onChange(val => {
+			if (val)
+				parkSpace.parking();
 
-const ground = new Mesh(
-	new PlaneGeometry(100, 100),
-	new MeshPhongMaterial({
-		// map: texture,
-	})
-);
-scene.add(ground);
-ground.rotateX(-Math.PI / 2);
-ground.receiveShadow = true;
-const groundBody = new Body({
-	mass: 0,
-	shape: new Plane(),
-	material: concreteMaterial,
-});
-groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-world.addBody(groundBody);
+			else
+				parkSpace.driving();
+		});
+	rayMeshs.push(parkSpace.car.scene);
+}
 
-const groundBody1 = new Body({
-	mass: 0,
-	shape: new Plane(),
-	material: concreteMaterial,
-});
-groundBody.position.set(0, 0, 100);
-world.addBody(groundBody1);
-
-const spheres: { mesh: Mesh; body: Body }[] = [];
-
-const createSphere = (size?: number, pos?: Vec3) => {
-	size ||= Math.random() * 100;
-	pos ||= new Vec3(Math.random(), 100 + Math.random(), Math.random());
-	const mesh = new Mesh(
-		new SphereGeometry(size),
-		new MeshPhongMaterial({
-			map: texture,
-			side: DoubleSide,
+async function createParkSpace(pos: Vector3) {
+	const parkSpace = new Mesh(
+		new PlaneGeometry(2.5, 5),
+		new MeshLambertMaterial({
+			color: "#50E1AC",
+			opacity: 0.5,
+			transparent: true,
 		})
 	);
-	scene.add(mesh);
-	mesh.castShadow = true;
+	parkSpace.position.copy(pos);
+	parkSpace.rotateX(-Math.PI / 2);
 
-	const shpereBody = new Body({
-		mass: size / 0.02 * 0.027,
-		shape: new Sphere(size),
-		position: pos,
-		material: plasticMaterial,
+	const car = await loader.loadAsync(CarUrl);
+	car.scene.position.copy(pos);
+	car.scene.rotateY(Math.PI);
+	car.scene.traverse((obj: Mesh) => {
+		if (obj.isMesh) {
+			obj.castShadow = true;
+			obj.receiveShadow = true;
+			(Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(
+				item => (item.transparent = true)
+			);
+		}
 	});
-	world.addBody(shpereBody);
+
+	car.scene.visible = false;
+
+	scene.add(car.scene, parkSpace);
 
 	return {
-		mesh,
-		body: shpereBody,
+		car,
+		parkSpace,
+		parking: () => {
+			car.scene.visible = true;
+			new Tween({ opacity: 0 })
+				.to({ opacity: 1 }, 1000)
+				.onUpdate(item => {
+					car.scene.position.copy(pos.clone().add(new Vector3(0, 0, (item.opacity - 1) * 2)));
+					car.scene.traverse((obj: Mesh) => {
+						if (!obj.isMesh) return;
+						(Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(
+							sub => (sub.opacity = item.opacity)
+						);
+					});
+				})
+				.start();
+		},
+		driving: () => {
+			new Tween({ opacity: 1 })
+				.to({ opacity: 0 }, 1000)
+				.onUpdate(item => {
+					car.scene.position.copy(pos.clone().add(new Vector3(0, 0, (item.opacity - 1) * 2)));
+					car.scene.traverse((obj: Mesh) => {
+						if (!obj.isMesh) return;
+						(Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(
+							sub => (sub.opacity = item.opacity)
+						);
+					});
+				})
+				.start()
+				.onComplete(() => {
+					car.scene.visible = false;
+				});
+		}
 	};
 };
 
-for (let i = 1; i <= 10; i++)
+renderer.domElement.addEventListener("mousedown", event => {
+	const px = event.offsetX;
+	const py = event.offsetY;
 
-	spheres.push(createSphere(1, new Vec3(0, i * 2, 0)));
-
-const sphere = createSphere(1, new Vec3(0, 1, 10));
-// spheres.push(sphere);
-
-controls.target = sphere.mesh.position;
-
-let pos = { x: 0, y: 0, z: 0 };
-useAnimation(() => {
-	spheres.forEach(item => {
-		item.mesh.position.copy(item.body.position);
-		item.mesh.quaternion.copy(item.body.quaternion);
-	});
-
-	pos.x = sphere.mesh.position.x;
-	pos.y = sphere.mesh.position.y;
-	pos.z = sphere.mesh.position.z;
-	sphere.mesh.position.set(
-		sphere.body.position.x,
-		sphere.body.position.y,
-		sphere.body.position.z
-	);
-
-	sphere.mesh.quaternion.copy(sphere.body.quaternion);
-
-	camera.position.x += sphere.mesh.position.x - pos.x;
-	camera.position.y += sphere.mesh.position.y - pos.y;
-	camera.position.z += sphere.mesh.position.z - pos.z;
+	const x = (px / innerWidth) * 2 - 1;
+	const y = (py / innerHeight) * 2 - 1;
+	const ray = new Raycaster();
+	ray.setFromCamera(new Vector2(x, y), camera);
+	const intersects = ray.intersectObjects(rayMeshs);
+	console.log(intersects);
 });
-
-useKey(
-	async () => {
-		console.log("wef");
-		sphere.body.applyForce(
-			camera.position
-				.clone()
-				.sub(sphere.mesh.position)
-				.normalize()
-				.multiplyScalar(-sphere.body.mass),
-			new Vec3(0, 0, 0)
-		);
-	},
-	{
-		key: "w",
-		type: "requestAnimationFrame",
-	}
-);
-
-useKey(
-	async () => {
-		console.log("wef666");
-		sphere.body.applyForce(
-			camera.position
-				.clone()
-				.sub(sphere.mesh.position)
-				.normalize()
-				.multiplyScalar(sphere.body.mass),
-			new Vec3(0, 0, 0)
-		);
-	},
-	{
-		key: "s",
-		type: "requestAnimationFrame",
-	}
-);
-
-useKey(
-	async () => {
-		console.log("wef666");
-		sphere.body.applyForce(
-			camera.position
-				.clone()
-				.sub(sphere.mesh.position)
-				.normalize()
-				.multiplyScalar(sphere.body.mass)
-				.applyAxisAngle(new Vector3(0, 1, 0), Math.PI / -2),
-			new Vec3(0, 0, 0)
-		);
-	},
-	{
-		key: "a",
-		type: "requestAnimationFrame",
-	}
-);
-
-useKey(
-	async () => {
-		sphere.body.applyForce(
-			camera.position
-				.clone()
-				.sub(sphere.mesh.position)
-				.normalize()
-				.multiplyScalar(sphere.body.mass)
-				.applyAxisAngle(new Vector3(0, 1, 0), Math.PI / 2),
-			new Vec3(0, 0, 0)
-		);
-	},
-	{
-		key: "d",
-		type: "requestAnimationFrame",
-	}
-);
-
-useKey(
-	async () => {
-		spheres.push(createSphere());
-	},
-	{
-		key: "c",
-		type: "keydown",
-	}
-);
-
-useKey(
-	async () => {
-		sphere.body.applyImpulse(
-			camera.position
-				.clone()
-				.sub(sphere.mesh.position)
-				.normalize()
-				.multiplyScalar(-sphere.body.mass * 10),
-			new Vec3(0, 0, 0)
-		);
-	},
-	{
-		key: " ",
-		type: "requestAnimationFrame",
-	}
-);
-
-// useKey(
-// 	async () => {
-// 		sphere.body.applyForce(camera.position.clone().normalize().multiply(new Vector3(10, 0, 0)), new Vec3(0, 0, 0));
-// 	},
-// 	{
-// 		key: "a",
-// 		type: "requestAnimationFrame",
-// 	}
-// );
-
-// useKey(
-// 	async () => {
-// 		sphere.body.applyForce(new Vec3(0, 0, -10), new Vec3(0, 0, 0));
-// 	},
-// 	{
-// 		key: "s",
-// 		type: "requestAnimationFrame",
-// 	}
-// );
-
-// useKey(
-// 	async () => {
-// 		sphere.body.applyForce(new Vec3(10, 0, 0), new Vec3(0, 0, 0));
-// 	},
-// 	{
-// 		key: "d",
-// 		type: "requestAnimationFrame",
-// 	}
-// );

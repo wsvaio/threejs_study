@@ -14,55 +14,28 @@ export function useAnimation(callback: () => void) {
 	requestAnimationFrame(r);
 }
 
-const keys = new Set();
+const keys = new Set<string>();
 
 type KeyType = "keydown" | "keyup" | "requestAnimationFrame";
 
 const keyCompose = compose<{
 	type: KeyType;
 	ev?: KeyboardEvent;
+	keys: Set<string>;
 }>();
 
-export const useKey = (
-	middleware: any,
-	{
-		key,
-		type,
-	}: {
-		key?: string | string[];
-		type?: KeyType | KeyType[];
-	} = {}
-) => {
-	keyCompose(async event => {
-		if (type && event.type != type && !type?.includes(event.type))
-			return;
-		if (
-			event.type == "requestAnimationFrame"
-      && key
-      && !(Array.isArray(key) ? key : [key]).some(item => keys.has(item))
-		)
-			return;
-		if (
-			event.type != "requestAnimationFrame"
-      && key
-      && event.ev.key.toLocaleLowerCase() != key
-      && !key?.includes(event.ev.key.toLocaleLowerCase())
-		)
-			return;
-
-		return await middleware(event.ev);
-	});
-};
-
 window.addEventListener("keydown", ev => {
+	console.log(ev);
 	if (keys.has(ev.key.toLocaleLowerCase())) return;
 	keys.add(ev.key.toLocaleLowerCase());
-	keyCompose({ type: "keydown", ev });
+	keyCompose({ type: "keydown", ev, keys });
 });
 window.addEventListener("keyup", ev => {
+	keyCompose({ type: "keyup", ev, keys });
 	keys.delete(ev.key.toLocaleLowerCase());
-	keyCompose({ type: "keyup", ev });
 });
 useAnimation(() => {
-	keyCompose({ type: "requestAnimationFrame" });
+	keyCompose({ type: "requestAnimationFrame", keys });
 });
+
+export const onKey = keyCompose.use;
