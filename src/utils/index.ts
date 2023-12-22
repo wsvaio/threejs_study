@@ -1,4 +1,5 @@
 import { compose } from "@wsvaio/utils";
+import { Clock } from "three";
 
 // export const { use, run } = compose<{
 // 	scene: Scene;
@@ -6,36 +7,21 @@ import { compose } from "@wsvaio/utils";
 // 	camera: PerspectiveCamera;
 // }>();
 
-export function useAnimation(callback: () => void) {
-	const r = () => {
-		callback();
-		requestAnimationFrame(r);
-	};
-	requestAnimationFrame(r);
-}
-
-const keys = new Set<string>();
-
-type KeyType = "keydown" | "keyup" | "requestAnimationFrame";
-
-const keyCompose = compose<{
-	type: KeyType;
-	ev?: KeyboardEvent;
-	keys: Set<string>;
-}>();
+export const keys = new Set<string>();
 
 window.addEventListener("keydown", ev => {
-	console.log(ev);
-	if (keys.has(ev.key.toLocaleLowerCase())) return;
 	keys.add(ev.key.toLocaleLowerCase());
-	keyCompose({ type: "keydown", ev, keys });
 });
 window.addEventListener("keyup", ev => {
-	keyCompose({ type: "keyup", ev, keys });
 	keys.delete(ev.key.toLocaleLowerCase());
 });
-useAnimation(() => {
-	keyCompose({ type: "requestAnimationFrame", keys });
-});
 
-export const onKey = keyCompose.use;
+const clock = new Clock();
+const animationFrameCompose = compose<{ delta: number }>();
+const r = () => {
+	const delta = clock.getDelta();
+	animationFrameCompose({ delta });
+	requestAnimationFrame(r);
+};
+requestAnimationFrame(r);
+export const useAnimationFrame = animationFrameCompose.use;

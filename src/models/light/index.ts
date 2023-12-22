@@ -18,7 +18,8 @@ directionalLight.shadow.camera.right = 100;
 directionalLight.shadow.camera.top = -100;
 directionalLight.shadow.camera.bottom = 100;
 directionalLight.shadow.mapSize.set(4096, 4096);
-directionalLight.shadow.bias = -0.0003;
+// directionalLight.shadow.radius = 0;
+// directionalLight.shadow.bias = -0.0003;
 const ambientLightFolder = gui.addFolder("环境光");
 ambientLightFolder.add(ambientLight, "intensity", 0, 10).name("环境光强度");
 ambientLightFolder

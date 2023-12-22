@@ -36,7 +36,7 @@ css3DRenderer.domElement.style.cssText = `
 	overflow: hidden;
 `;
 
-useAnimation(() => {
+useAnimationFrame(() => {
 	update();
 	world.fixedStep();
 	composer.render();
